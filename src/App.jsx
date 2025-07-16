@@ -115,6 +115,46 @@ function App() {
     return `/assets/${name}.jpg`
   }
 
+  const simulateFlow = async () => {
+  const visited = new Set()
+  const path = []
+
+  // Build adjacency list from edges
+  const adjacency = {}
+  edges.forEach(edge => {
+    if (!adjacency[edge.source]) adjacency[edge.source] = []
+    adjacency[edge.source].push(edge.target)
+  })
+
+  // Recursive DFS to build the flow path (linear path assumed)
+  const traverse = (nodeId) => {
+    if (visited.has(nodeId)) return
+    visited.add(nodeId)
+    path.push(nodeId)
+    const neighbors = adjacency[nodeId] || []
+    neighbors.forEach(traverse)
+  }
+
+  // Start from node with id '1' (or find node with no incoming edges)
+  traverse('1')
+
+  for (let i = 0; i < path.length; i++) {
+    const currentNode = nodes.find((n) => n.id === path[i])
+    if (currentNode) {
+      setSelectedNode(currentNode)
+      setShowDetails(true)
+      await new Promise((resolve) => setTimeout(resolve, 2500)) // Wait 1.5 seconds
+    }
+  }
+
+  // Optionally reset after simulation
+  setTimeout(() => {
+    setSelectedNode(null)
+    setShowDetails(false)
+  }, 2000)
+}
+
+
   const onConnect = useCallback(
     (params) =>
       setEdges((eds) => addEdge({ ...params, type: edgeType }, eds)), // UPDATED
@@ -461,6 +501,8 @@ function App() {
         <button onClick={loadFlow}>📂 Load</button>
         <button onClick={exportAsImage}>📸 Export</button>
         <button onClick={() => setDarkTheme(!darkTheme)}>{darkTheme ? '🌞 Light' : '🌙 Dark'} Mode</button>
+        <button onClick={simulateFlow}>▶️ Simulate</button>
+
 
 
       </div>
