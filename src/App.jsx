@@ -19,7 +19,7 @@ const initialNodes = [
     type: 'editableNode',
     data: {
       label: 'Start',
-      shortInfo: 'This is the start of the process.',
+      shortInfo: 'This is the start of the process and i am aryan.',
       details: {
         title: 'Start Node - Detailed Info',
         description: 'This node marks the beginning of the flowchart',
