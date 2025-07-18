@@ -46,6 +46,8 @@ const initialNodes = [
       details: {
         title: 'Second node',
         description: 'This node marks the second of the flowchart.',
+        externalLink: "/assets/manuals/feedback_report (1).pdf", // local or external
+        externalLabel: "Open Start Node Manual",
         imageUrl: '/assets/process.jpg',
         videoUrl: '/assets/process.mp4',
         extra: 'More instructions, links, etc.'
@@ -109,6 +111,70 @@ function App() {
   const [darkTheme, setDarkTheme] = useState(false)
   const [selectedNode, setSelectedNode] = useState(null)
   const [showDetails, setShowDetails] = useState(false)
+  const [currentCollapseLevel, setCurrentCollapseLevel] = useState(null);
+  const [maxLevel, setMaxLevel] = useState(0);
+  
+const computeNodeLevels = () => {
+  const levels = {};
+  const visited = new Set();
+  const roots = nodes.filter(n => !edges.some(e => e.target === n.id));
+  const queue = roots.map(r => ({ id: r.id, level: 0 }));
+  let max = 0;
+
+  while (queue.length > 0) {
+    const { id, level } = queue.shift();
+    if (visited.has(id)) continue;
+    visited.add(id);
+    levels[id] = level;
+    if (level > max) max = level;
+
+    const children = edges.filter(e => e.source === id).map(e => e.target);
+    children.forEach(childId => {
+      queue.push({ id: childId, level: level + 1 });
+    });
+  }
+
+  setMaxLevel(max);
+  if (currentCollapseLevel === null) setCurrentCollapseLevel(max); // start from bottom
+  return levels;
+};
+
+const handleCollapsePrevLevel = () => {
+  const levels = computeNodeLevels();
+  if (currentCollapseLevel < 0) return; // finished
+
+  setNodes(nds =>
+    nds.map(n =>
+      levels[n.id] === currentCollapseLevel ? { ...n, hidden: true } : n
+    )
+  );
+  setEdges(eds =>
+    eds.map(e => {
+      const targetLevel = levels[e.target];
+      return targetLevel === currentCollapseLevel ? { ...e, hidden: true } : e;
+    })
+  );
+  setCurrentCollapseLevel((prev) => prev - 1);
+};
+
+const handleExpandNextLevel = () => {
+  if (currentCollapseLevel >= maxLevel) return;
+  const nextLevel = currentCollapseLevel + 1;
+  const levels = computeNodeLevels();
+
+  setNodes(nds =>
+    nds.map(n =>
+      levels[n.id] === nextLevel ? { ...n, hidden: false } : n
+    )
+  );
+  setEdges(eds =>
+    eds.map(e => {
+      const targetLevel = levels[e.target];
+      return targetLevel === nextLevel ? { ...e, hidden: false } : e;
+    })
+  );
+  setCurrentCollapseLevel(nextLevel);
+};
 
   const getNodeImage = (label) => {
     const name = label.toLowerCase().replace(/\s+/g, '')
@@ -403,6 +469,26 @@ function App() {
           </div>
         )}
 
+        {selectedNode?.data?.details?.externalLink && (
+          <div style={{ marginTop: "1rem" }}>
+            <a
+              href={selectedNode.data.details.externalLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-block",
+                padding: "0.5rem 1rem",
+                backgroundColor: "#007bff",
+                color: "white",
+                borderRadius: "5px",
+                textDecoration: "none"
+              }}
+            >
+              {selectedNode.data.details.externalLabel || "Open Document"}
+            </a>
+         </div>
+       )}  
+
         {showDetails && selectedNode && (
           <div style={{
             position: 'absolute',
@@ -502,8 +588,12 @@ function App() {
         <button onClick={exportAsImage}>📸 Export</button>
         <button onClick={() => setDarkTheme(!darkTheme)}>{darkTheme ? '🌞 Light' : '🌙 Dark'} Mode</button>
         <button onClick={simulateFlow}>▶️ Simulate</button>
-
-
+        <button onClick={handleCollapsePrevLevel}>
+         🔽 Collapse Level {currentCollapseLevel}
+        </button>
+        <button onClick={handleExpandNextLevel}>
+         🔼 Expand Level {currentCollapseLevel + 1}
+        </button>
 
       </div>
     </div>
